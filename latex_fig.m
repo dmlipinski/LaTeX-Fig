@@ -89,16 +89,14 @@ function latex_fig(varargin)
 %      
 
 
-
     if (ispc)
         error('Sorry, Windows is not supported.');
     end
 
     %variables for temporary file names:
-    LATEX_FILE = sprintf('tmp%08d',floor(1e8*rand));
-    EPS_FILE = sprintf('tmp%08d',floor(1e8*rand));
     TMP_DIR = '/tmp/';
-
+    LATEX_FILE = sprintf('%stmp%08d',TMP_DIR,floor(1e8*rand));
+    EPS_FILE = sprintf('%stmp%08d',TMP_DIR,floor(1e8*rand));
 
     %Parse inputs
     options = parse_inputs(varargin);
@@ -307,9 +305,9 @@ function latex_fig(varargin)
 
     %print to eps
     if options.nocrop
-        print([EPS_FILE '.eps'],options.handle,'-loose','-painters',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
+        print([EPS_FILE '.eps'],options.handle,'-loose','-painters','-depsc2',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
     else
-        print([EPS_FILE '.eps'],options.handle,'-painters',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
+        print([EPS_FILE '.eps'],options.handle,'-painters','-depsc2',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
     end
     
     if options.rasterize
@@ -350,8 +348,7 @@ function latex_fig(varargin)
     end
     
     %process through latex and dvipdf/dvieps
-    [s,r]=system(sprintf('cp %s.tex %s',LATEX_FILE,TMP_DIR));
-    [s,r]=system(sprintf('latex -interaction=nonstopmode %s%s.tex',TMP_DIR,LATEX_FILE));
+    [s,r]=system(sprintf('cd %s; latex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
     if s
         error('Error processing latex file.\n\n%s',r);
     end
@@ -373,113 +370,74 @@ function latex_fig(varargin)
         fclose(FID);
         
         %compile
-        [s,r]=system(sprintf('cp %s.tex %s',LATEX_FILE,TMP_DIR));
-        [s,r]=system(sprintf('pdflatex -interaction=nonstopmode %s%s.tex',TMP_DIR,LATEX_FILE));
+        [s,r]=system(sprintf('cd %s; pdflatex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
         if s
             error('Error processing latex file.\n\n%s',r);
         end
+    else
+        %convert dvi to pdf
+        [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
+            LATEX_FILE,LATEX_FILE));
+        if s
+            warning('Error converting DVI to PDF.\n%s',r);
+        end
     end
     
-    if options.rasterize
+
+    %convert to the specified output formats
+    if options.format.eps
+        if options.rasterize
+            %PDF to EPS
+            warning('EPS files produced with the ''-rasterize'' option will be fully rasterized. Use PDF files to preserve text and line objects');
+            [s,r]=system(sprintf('pdf2ps %s.pdf %s.eps', ...
+                LATEX_FILE,options.filename));
+        else
+            %DVI to EPS
+            [s,r]=system(sprintf('dvips %s.dvi && mv %s.ps %s.eps', ...
+                LATEX_FILE,LATEX_FILE,options.filename));
+        end
+        if s
+            warning('Error converting to EPS.\n%s',r);
+        end
+    end
+    if options.format.png
+        [s,r]=system(sprintf('convert -density %d %s.pdf %s.png', ...
+            options.resolution, ...
+            LATEX_FILE, ...
+            options.filename));
+        if s
+            warning('Error generating PNG from PDF.\n%s',r);
+        end
+    end
+    if options.format.jpg
+        [s,r]=system(sprintf('convert -density %d %s.pdf -quality %d %s.jpg',...
+            options.resolution, ...
+            LATEX_FILE, ...
+            options.quality, ...
+            options.filename));
+        if s
+            warning('Error generating JPG from PDF.\n%s',r);
+        end
+    end
+    if options.format.tiff
+        [s,r]=system(sprintf('convert -density %d %s.pdf -quality %d %s.tiff',...
+            options.resolution, ...
+            LATEX_FILE, ...
+            options.quality, ...
+            options.filename));
+        if s
+            warning('Error generating TIFF from PDF.\n%s',r);
+        end
+    end
+    if options.format.pdf==1
         %rename pdf
         [s,r]=system(sprintf('mv %s.pdf %s.pdf', ...
             LATEX_FILE,options.filename));
-
-        %convert to the specified output formats
-        if options.format.eps
-            warning('EPS files produced with the ''-rasterize'' option will be fully rasterized. Use PDF files to preserve text and line objects');
-            [s,r]=system(sprintf('pdf2ps %s.pdf %s.eps', ...
-                options.filename,options.filename));
-            if s
-                warning('Error converting to EPS.\n%s',r);
-            end
-        end
-        if options.format.png
-            system(sprintf('convert -density %d %s.pdf %s.png', ...
-                options.resolution, ...
-                options.filename, ...
-                options.filename));
-            if s
-                warning('Error generating PNG from PDF.\n%s',r);
-            end
-        end
-        if options.format.jpg
-            system(sprintf('convert -density %d %s.pdf -quality %d %s.jpg',...
-                options.resolution, ...
-                options.filename, ...
-                options.quality, ...
-                options.filename));
-            if s
-                warning('Error generating JPG from PDF.\n%s',r);
-            end
-        end
-        if options.format.tiff
-            system(sprintf('convert -density %d %s.pdf -quality %d %s.tiff',...
-                options.resolution, ...
-                options.filename, ...
-                options.quality, ...
-                options.filename));
-            if s
-                warning('Error generating TIFF from PDF.\n%s',r);
-            end
-        end
-        
-    else
-        %convert from dvi
-        if options.format.pdf
-            [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
-            LATEX_FILE,options.filename));
-            if s
-                warning('Error converting DVI to PDF.\n%s',r);
-            end
-        end
-
-        %convert to the specified output formats
-        if options.format.eps
-            [s,r]=system(sprintf('dvips %s.dvi && mv %s.ps %s.eps', ...
-                LATEX_FILE,LATEX_FILE,options.filename));
-            if s
-                warning('Error converting DVI to EPS.\n%s',r);
-            end
-        end
-        if options.format.png
-            system(sprintf('convert -density %d %s.pdf %s.png', ...
-                options.resolution, ...
-                options.filename, ...
-                options.filename));
-            if s
-                warning('Error generating PNG from PDF.\n%s',r);
-            end
-        end
-        if options.format.jpg
-            system(sprintf('convert -density %d %s.pdf -quality %d %s.jpg',...
-                options.resolution, ...
-                options.filename, ...
-                options.quality, ...
-                options.filename));
-            if s
-                warning('Error generating JPG from PDF.\n%s',r);
-            end
-        end
-        if options.format.tiff
-            system(sprintf('convert -density %d %s.pdf -quality %d %s.tiff',...
-                options.resolution, ...
-                options.filename, ...
-                options.quality, ...
-                options.filename));
-            if s
-                warning('Error generating TIFF from PDF.\n%s',r);
-            end
-        end
     end
     
     %remove temporary files:
-    if options.format.pdf==2
-        delete(sprintf('%s.pdf',options.filename));
-    end
     delete(sprintf('%s.*',LATEX_FILE));
     delete(sprintf('%s.*',EPS_FILE));
-    delete(sprintf('%s%s.*',TMP_DIR,LATEX_FILE));
     
     
 end
@@ -800,14 +758,16 @@ if transparent
     %white background:
     set(handle,'color','w','position',POS);
 end
-drawnow
-img = downscale( print2array(handle,magnify,renderer), aa );
+% drawnow
+tmpimg = print2array(handle,magnify,renderer);
+img = downscale( tmpimg, aa );
 
 if transparent
     %black background:
     set(handle,'color','k','position',POS);
-    drawnow
-    img2 = downscale( print2array(handle,magnify,renderer), aa );
+%     drawnow
+    tmpimg = print2array(handle,magnify,renderer);
+    img2 = downscale( tmpimg, aa );
 
     %reset background
     set(handle,'color',COLOR,'position',POS);
@@ -826,7 +786,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%this function based on a similar function in export_fig with some
+%this function is based on a similar function in export_fig with some
 %improvements for better speed if the image processing toolbox is not
 %available
 function img_out = downscale(img, factor)
@@ -840,7 +800,6 @@ try
     img_out = imresize(img, 1/factor, 'bilinear');
 catch
     % No image processing toolbox - resize manually
-    
     ff = ceil(factor);
     if mod(ff,2)
         x=-ff:ff;
