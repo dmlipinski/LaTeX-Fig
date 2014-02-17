@@ -1,6 +1,6 @@
 function latex_fig(varargin)
 % latex_fig    Export a figure with text objects rendered via LaTeX
-%              ver 0.1
+%              ver 0.11
 %
 %    Examples:
 %      latex_fig(gcf,'output.pdf')
@@ -8,7 +8,7 @@ function latex_fig(varargin)
 %      latex_fig(...,'-latexpackages',{'\usepackage{amssymb}',...
 %                      '\newcommand{\abs}[1]{\left\lvert#1\right\rvert}'})
 %      latex_fig(...,'-png','-jgp','-pdf,'-eps','-r300','-q80')
-%      latex_fig(...,'-nocrop') or latex_fig(...,'-loose')
+%      latex_fig(...,'-nocrop')
 %      latex_fig(...,'-transparent')
 %      latex_fig(...,'-rasterize',[h1, h2, h3, ...])
 %    
@@ -306,7 +306,7 @@ function latex_fig(varargin)
     end
 
     %print to eps
-    if options.loose
+    if options.nocrop
         print([EPS_FILE '.eps'],options.handle,'-loose','-painters',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
     else
         print([EPS_FILE '.eps'],options.handle,'-painters',sprintf('-r%d',round(get(0,'screenpixelsperinch'))));
@@ -493,7 +493,7 @@ function options = parse_inputs(inputs)
         'crop',[0 0 1 1], ...
         'handle',[], ...
         'quality',90, ...
-        'loose',false, ...
+        'nocrop',false, ...
         'transparent',false, ...
         'rasterize',false, ...
         'renderer','-opengl', ...
@@ -535,7 +535,7 @@ function options = parse_inputs(inputs)
                     options.packages = inputs{i+1};
                     i=i+2;
                 case {'-loose','-nocrop'}
-                    options.loose = true;
+                    options.nocrop = true;
                     i=i+1;
                 case '-crop'
                     if ~isnumeric(inputs{i+1}) || numel(inputs{i+1})~=4
@@ -601,10 +601,10 @@ function options = parse_inputs(inputs)
         error('Invalid file name');
     end
     
-    %loose option will be enabled if rasterize flag is present
-    if options.rasterize && ~options.loose
-        options.loose=true;
-        warning('Enabling "-loose" option for rasterized image to eliminate issues with different cropping sizes.');
+    %nocrop option will be enabled if rasterize flag is present
+    if options.rasterize && ~options.nocrop
+        options.nocrop=true;
+        warning('Enabling "-nocrop" option for rasterized image to eliminate issues with different cropping sizes.');
     end
 
     %make sure the figure handle is defined
