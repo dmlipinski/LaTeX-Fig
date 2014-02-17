@@ -16,23 +16,29 @@ for i=1:7
 end
 
 figure(1)
+set(1,'position',[100 100 560 420])
 clf
 h = surf([x1 x2],[y1 y2],[z z],[z z]);
 xlabel('$x$')
 ylabel('$y$')
 zlabel('$z$')
-title({'\LaTeX Figure Demo','All text objects will be processed via \LaTeX.','Symbol examples: \AR, $\ddagger$'})
+title({'\LaTeX{} Figure Demo','All text objects will be processed via \LaTeX.','Symbol examples: \AR, $\ddagger$, $\clubsuit$, $\mho$'})
 
 axis equal
 box on
+grid off
 alpha(.8)
 camlight %('headlight')
 material shiny
 shading interp
 view(3)
 
-latex_fig( 1, 'outfile.pdf', ...
+latex_fig( 1, 'outfile','-pdf','-png','-jpg','-eps','-tiff', ...
+           '-nocrop',...
+           '-transparent',...
            '-rasterize', h, ...
-           '-r300', ...
+           '-r150', ...
            '-latexpackages', {'\usepackage{amssymb}','\usepackage{ar}'}, ...
-           '-crop', [.05 .05 .9 1.0] )
+           '-crop', [.17 .05 .63 1.0] )
+
+
