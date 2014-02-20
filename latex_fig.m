@@ -55,8 +55,9 @@ function latex_fig(varargin)
 %                       the native screen resolution.
 %    '-a<val>'          The level of anti-aliasing to use for rasterized
 %                       plot objects. <val> should be a positive integer.
-%                       The default is '-a4'. '-a1' corresponds to no
-%                       anti-aliasing.
+%                       The default is '-a1', corresponding to no anti-
+%                       aliasing. Choose '-a3' or '-a4' for a high level of
+%                       anti aliasing.
 %    '-nocrop'          
 %                       Do not attempt to auto crop the figure.
 %    '-transparent'     
@@ -456,7 +457,7 @@ function options = parse_inputs(inputs)
         'rasterize',false, ...
         'renderer','-opengl', ...
         'resolution', get(0,'ScreenPixelsPerInch'), ...
-        'aa', 4 ...
+        'aa', 1 ...
         );
     options.format = struct( ...
         'pdf', false, ...
@@ -789,7 +790,7 @@ end
 %this function is based on a similar function in export_fig with some
 %improvements for better speed if the image processing toolbox is not
 %available
-function img_out = downscale(img, factor)
+function img = downscale(img, factor)
 % Scale down an image by a factor of "factor"
 if factor == 1
     %don't scale
@@ -797,7 +798,7 @@ if factor == 1
 end
 try
     % Faster, but requires image processing toolbox
-    img_out = imresize(img, 1/factor, 'bilinear');
+    img = imresize(img, 1/factor, 'bilinear');
 catch
     % No image processing toolbox - resize manually
     ff = ceil(factor);
@@ -826,6 +827,6 @@ catch
         img_out = img_out + x(i)*x(j)*img(i+ii,j+jj,:);
     end
     end
-    img_out = uint8(img_out);
+    img = uint8(img_out);
 end
 end
