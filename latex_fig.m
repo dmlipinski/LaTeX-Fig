@@ -393,8 +393,8 @@ function latex_fig(varargin)
                 LATEX_FILE,options.filename));
         else
             %DVI to EPS
-            [s,r]=system(sprintf('dvips %s.dvi && mv %s.ps %s.eps', ...
-                LATEX_FILE,LATEX_FILE,options.filename));
+            [s,r]=system(sprintf('dvips %s.dvi -o %s.eps', ...
+                LATEX_FILE,options.filename));
         end
         if s
             warning('Error converting to EPS.\n%s',r);
