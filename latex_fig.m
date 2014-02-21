@@ -32,15 +32,21 @@ function latex_fig(varargin)
 %                       Typically this may be a list of "\usepackage{}"
 %                       commands, but it may also include user-defined
 %                       macros and other settings.
+%    '-autocrop'          
+%                       Attempt to auto crop the figure. This give poor
+%                       results in some cases.
 %    '-crop', [x,y,w,h]
 %                       Bounding box position in relative coordinates. The
 %                       default is [0,0,1,1]. The first two coordinates
 %                       specify the left and bottom of the window and the
 %                       second two coordinates specify the relative width
-%                       and height. Negative numbers may be used for first
-%                       two coordinates to expand the bounding box left and
-%                       down and numbers greater than 1 for width and
-%                       height will increase the output size.
+%                       and height. Negative numbers may be used for the 
+%                       first two coordinates to expand the bounding box
+%                       left and down and numbers greater than 1 for width
+%                       and height will increase the output size. Note that
+%                       the -crop,[x,y,w,h] and -autocrop options function
+%                       separately. If -autocrop is specified in addition
+%                       to -crop the results may be unpredictable.
 %    '-format'          
 %                       The output format. Multiple formats may be
 %                       specified. Valid formats include '-png', '-jpg',
@@ -58,8 +64,6 @@ function latex_fig(varargin)
 %                       The default is '-a1', corresponding to no anti-
 %                       aliasing. Choose '-a3' or '-a4' for a high level of
 %                       anti aliasing.
-%    '-nocrop'          
-%                       Do not attempt to auto crop the figure.
 %    '-transparent'     
 %                       Use a transparent figure background. Axis and
 %                       legend backgrounds must be turned off separately
@@ -440,7 +444,7 @@ function options = parse_inputs(inputs)
         'crop',[0 0 1 1], ...
         'handle',[], ...
         'quality',90, ...
-        'nocrop',false, ...
+        'nocrop',true, ...
         'transparent',false, ...
         'rasterize',false, ...
         'renderer','-opengl', ...
@@ -481,8 +485,8 @@ function options = parse_inputs(inputs)
                 case '-latexpackages'
                     options.packages = inputs{i+1};
                     i=i+2;
-                case {'-loose','-nocrop'}
-                    options.nocrop = true;
+                case {'-autocrop'}
+                    options.nocrop = false;
                     i=i+1;
                 case '-crop'
                     if ~isnumeric(inputs{i+1}) || numel(inputs{i+1})~=4
