@@ -342,8 +342,8 @@ function latex_fig(varargin)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%   convert to the desired output formats   %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    formats=fieldnames(options.format);
     if options.rasterize
-        formats=fieldnames(options.format);
         for i=1:length(formats)
             fmt = formats{i};
             if strcmp(fmt,'eps') && options.format.eps
@@ -355,11 +355,20 @@ function latex_fig(varargin)
                     'objects or PNG/JPG for fully rasterized images.']);
             end
             if ~strcmp(fmt,'pdf') && options.format.(fmt)
-                [s,r]=system(sprintf('convert -density %d %s.pdf %s.png -background white -composite %s.%s', ...
+                if strcmp(fmt,'jpg') && options.transparent
+                    %add white background to jpgs since they can't handle
+                    %transparency
+                    OPTS = '-background white -alpha remove';
+                else
+                    OPTS = '';
+                end
+                [s,r]=system(sprintf('convert -density %d %s.pdf %s %s.png -background white -composite -quality %d %s.%s', ...
                     options.resolution,...
-                    EPS_FILE,...
-                    EPS_FILE,...
-                    options.filename,...
+                    EPS_FILE, ...
+                    OPTS, ...
+                    EPS_FILE, ...
+                    options.quality, ...
+                    options.filename, ...
                     fmt));
             end
             if s
@@ -378,34 +387,41 @@ function latex_fig(varargin)
             fclose(FID);
 
             %compile
-            [s,r]=system(sprintf('cd %s; pdflatex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
+            [s,r]=system(sprintf('pdflatex -interaction=nonstopmode -output-directory %s %s.tex && mv %s.pdf %s.pdf',TMP_DIR,LATEX_FILE,LATEX_FILE,options.filename));
             if s
                 error('Error processing latex file.\n\n%s',r);
             end
         end
     else
-        for i=1:length(options.fmtList)
-            fmt = options.fmtList{i};
+        for i=1:length(formats)
+            fmt = formats{i};
             if strcmp(fmt,'eps') && options.format.eps
                 %DVI to EPS
                 [s,r]=system(sprintf('dvips %s.dvi -o %s.eps', ...
                     LATEX_FILE,options.filename));
             elseif ~strcmp(fmt,'pdf') && options.format.(fmt)
-                [s,r]=system(sprintf('convert -density %d %s.pdf %s.png', ...
+                if strcmp(fmt,'jpg') && options.transparent
+                    %add white background to jpgs since they can't handle
+                    %transparency
+                    OPTS = '-background white -alpha remove';
+                else
+                    OPTS = '';
+                end
+                [s,r]=system(sprintf('convert -density %d %s.pdf %s -quality %d %s.%s', ...
                     options.resolution, ...
-                    LATEX_FILE, ...
-                    options.filename));
+                    EPS_FILE, ...
+                    OPTS, ...
+                    options.quality, ...
+                    options.filename, ...
+                    fmt));
+            elseif strcmp(fmt,'pdf') && options.format.pdf
+                [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
+                    LATEX_FILE,options.filename));
             end
             if s
                 warning('Error converting to %s.\n%s',fmt,r);
             end
         end
-    end
-    
-    if options.format.pdf==1
-        %rename pdf
-        [s,r]=system(sprintf('mv %s.pdf %s.pdf', ...
-            LATEX_FILE,options.filename));
     end
     
     %remove temporary files:
