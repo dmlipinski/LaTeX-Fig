@@ -150,29 +150,8 @@ function latex_fig(varargin)
         %modify original text string to LaTeX format:
         original.text{i} = get(h(i),'string');
 
-        % Deal with font sizes by roughly translating font sizes in points to
-        % LaTeX font size commands
-        if original.fontsize{i}>=20.75
-            str=strcat('\Huge~', original.text{i});
-        elseif original.fontsize{i}>=17.25
-            str=strcat('\huge~', original.text{i});
-        elseif original.fontsize{i}>=14.75
-            str=strcat('\LARGE~', original.text{i});
-        elseif original.fontsize{i}>=12.875
-            str=strcat('\Large~', original.text{i});
-        elseif original.fontsize{i}>=10.875
-            str=strcat('\large~', original.text{i});
-        elseif original.fontsize{i}>=9.5
-            str=strcat('\normalsize~', original.text{i});
-        elseif original.fontsize{i}>=8.75
-            str=strcat('\small~', original.text{i});
-        elseif original.fontsize{i}>=8.25
-            str=strcat('\footnotesize~', original.text{i});
-        elseif original.fontsize{i}>=7.5
-            str=strcat('\scriptsize~', original.text{i});
-        else
-            str=strcat('\tiny ', original.text{i});
-        end
+        %Deal with font sizes:
+        str = prepend_font_size(original.fontsize{i},original.text{i});
         
         if iscell(str)
             if numel(str)==1
@@ -302,6 +281,11 @@ function latex_fig(varargin)
             set(hCH(i),'position',posCHnew{i});
         end
         
+        %reset parent axes:
+        for i=1:numel(options.rasterHandles)
+            set(PARENT_HANDLE(i),'color',COLOR{i});
+        end
+        
     end
 
     %print to eps
@@ -314,11 +298,6 @@ function latex_fig(varargin)
     if options.rasterize
         %turn raster objects back on
         set(options.rasterHandles,'visible','on');
-        
-        %reset parent axes:
-        for i=1:numel(options.rasterHandles)
-            set(PARENT_HANDLE(i),'color',COLOR{i});
-        end
     end
     
     %remove the background from the eps if necessary:
@@ -348,88 +327,81 @@ function latex_fig(varargin)
         setenv('LD_LIBRARY_PATH','""');
     end
     
-    %process through latex and dvipdf/dvieps
+    %process through latex to produce a dvi file
     [s,r]=system(sprintf('cd %s; latex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
     if s
         error('Error processing latex file.\n\n%s',r);
     end
-    
-    if options.rasterize
-        %convert the dvi to pdf
-        [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
+    %convert the dvi to pdf
+    [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
         LATEX_FILE,EPS_FILE));
-        if s
-            warning('Error converting DVI to PDF.\n%s',r);
+    if s
+        warning('Error converting DVI to PDF.\n%s',r);
+    end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%   convert to the desired output formats   %%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if options.rasterize
+        formats=fieldnames(options.format);
+        for i=1:length(formats)
+            fmt = formats{i};
+            if strcmp(fmt,'eps') && options.format.eps
+                %warn about rasterized EPS files
+                warning(['Outputing EPS files produced with the ' ...
+                    '''-rasterize'' option is strongly discouraged. They ' ...
+                    'will be fully rasterized and typically have poor ' ...
+                    'resolution. Use PDF files to preserve text and line ' ...
+                    'objects or PNG/JPG for fully rasterized images.']);
+            end
+            if ~strcmp(fmt,'pdf') && options.format.(fmt)
+                [s,r]=system(sprintf('convert -density %d %s.pdf %s.png -background white -composite %s.%s', ...
+                    options.resolution,...
+                    EPS_FILE,...
+                    EPS_FILE,...
+                    options.filename,...
+                    fmt));
+            end
+            if s
+                warning('Error converting to %s.\n%s',fmt,r);
+            end
         end
         
-        %make a new latex file for png/pdf overlay
-        FILE_CONTENTS = latex_overlay_file_gen(EPS_FILE);
-        
-        %write the latex file:
-        FID = fopen([LATEX_FILE '.tex'],'w');
-        fprintf(FID,'%s',FILE_CONTENTS);
-        fclose(FID);
-        
-        %compile
-        [s,r]=system(sprintf('cd %s; pdflatex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
-        if s
-            error('Error processing latex file.\n\n%s',r);
+        if options.format.pdf==1
+            %make a new latex file for png/pdf overlay only if pdf output is
+            %desired, other formats are be handled via ImageMagick composites
+            FILE_CONTENTS = latex_overlay_file_gen(EPS_FILE);
+
+            %write the latex file:
+            FID = fopen([LATEX_FILE '.tex'],'w');
+            fprintf(FID,'%s',FILE_CONTENTS);
+            fclose(FID);
+
+            %compile
+            [s,r]=system(sprintf('cd %s; pdflatex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
+            if s
+                error('Error processing latex file.\n\n%s',r);
+            end
         end
     else
-        %convert dvi to pdf
-        [s,r]=system(sprintf('dvipdf %s.dvi %s.pdf', ...
-            LATEX_FILE,LATEX_FILE));
-        if s
-            warning('Error converting DVI to PDF.\n%s',r);
+        for i=1:length(options.fmtList)
+            fmt = options.fmtList{i};
+            if strcmp(fmt,'eps') && options.format.eps
+                %DVI to EPS
+                [s,r]=system(sprintf('dvips %s.dvi -o %s.eps', ...
+                    LATEX_FILE,options.filename));
+            elseif ~strcmp(fmt,'pdf') && options.format.(fmt)
+                [s,r]=system(sprintf('convert -density %d %s.pdf %s.png', ...
+                    options.resolution, ...
+                    LATEX_FILE, ...
+                    options.filename));
+            end
+            if s
+                warning('Error converting to %s.\n%s',fmt,r);
+            end
         end
     end
     
-
-    %convert to the specified output formats
-    if options.format.eps
-        if options.rasterize
-            %PDF to EPS
-            warning('EPS files produced with the ''-rasterize'' option will be fully rasterized. Use PDF files to preserve text and line objects');
-            [s,r]=system(sprintf('pdf2ps %s.pdf %s.eps', ...
-                LATEX_FILE,options.filename));
-        else
-            %DVI to EPS
-            [s,r]=system(sprintf('dvips %s.dvi -o %s.eps', ...
-                LATEX_FILE,options.filename));
-        end
-        if s
-            warning('Error converting to EPS.\n%s',r);
-        end
-    end
-    if options.format.png
-        [s,r]=system(sprintf('convert -density %d %s.pdf %s.png', ...
-            options.resolution, ...
-            LATEX_FILE, ...
-            options.filename));
-        if s
-            warning('Error generating PNG from PDF.\n%s',r);
-        end
-    end
-    if options.format.jpg
-        [s,r]=system(sprintf('convert -density %d %s.pdf -quality %d %s.jpg',...
-            options.resolution, ...
-            LATEX_FILE, ...
-            options.quality, ...
-            options.filename));
-        if s
-            warning('Error generating JPG from PDF.\n%s',r);
-        end
-    end
-    if options.format.tiff
-        [s,r]=system(sprintf('convert -density %d %s.pdf -quality %d %s.tiff',...
-            options.resolution, ...
-            LATEX_FILE, ...
-            options.quality, ...
-            options.filename));
-        if s
-            warning('Error generating TIFF from PDF.\n%s',r);
-        end
-    end
     if options.format.pdf==1
         %rename pdf
         [s,r]=system(sprintf('mv %s.pdf %s.pdf', ...
@@ -585,35 +557,23 @@ function options = parse_inputs(inputs)
             case '.png'
                 options.format.png=true;
                 options.filename(I(end):end)=[];
-                if ~options.format.pdf
-                    %2 means build pdf but delete it after converting
-                    options.format.pdf=2;
-                end
             case {'.jpg','.jpeg'}
                 options.format.jpg=true;
                 options.filename(I(end):end)=[];
-                if ~options.format.pdf
-                    %2 means build pdf but delete it after converting
-                    options.format.pdf=2;
-                end
             case {'.tif','.tiff'}
                 options.format.tiff=true;
                 options.filename(I(end):end)=[];
-                if ~options.format.pdf
-                    %2 means build pdf but delete it after converting
-                    options.format.pdf=2;
-                end
         end
     end
 
-    %be sure at least one format is selected, default to pdf
+    %be sure at least one format is selected
     n=0;
     formats=fieldnames(options.format);
-    for i=1:numel(options.format)
+    for i=1:numel(formats)
         n=n+options.format.(formats{i});
     end
     if n==0;
-        options.format.pdf=true;
+        error('No output format specified.');
     end
     
 end
@@ -727,8 +687,8 @@ function FILE_CONTENTS = latex_overlay_file_gen(filename)
         '\begin{document}',...
         '\noindent',...
         '\begin{overpic}[scale=1,unit=1mm,width=1\textwidth]',...
-        sprintf('  {%s.png}',filename),...
-        sprintf('  \\put(0,0){\\includegraphics{%s.pdf}}',filename),...
+        sprintf('  {%s.pdf}',filename),...
+        sprintf('  \\put(0,0){\\includegraphics[width=1\\textwidth]{%s.png}}',filename),...
         '\end{overpic}',...
         '\end{document}'...
     );
@@ -828,5 +788,31 @@ catch
     end
     end
     img = uint8(img_out);
+end
+end
+
+function str = prepend_font_size(ptSize,text);
+% Deal with font sizes by roughly translating font sizes in points to
+% LaTeX font size commands
+if ptSize>=20.75
+    str=strcat('\Huge~', text);
+elseif ptSize>=17.25
+    str=strcat('\huge~', text);
+elseif ptSize>=14.75
+    str=strcat('\LARGE~', text);
+elseif ptSize>=12.875
+    str=strcat('\Large~', text);
+elseif ptSize>=10.875
+    str=strcat('\large~', text);
+elseif ptSize>=9.5
+    str=strcat('\normalsize~', text);
+elseif ptSize>=8.75
+    str=strcat('\small~', text);
+elseif ptSize>=8.25
+    str=strcat('\footnotesize~', text);
+elseif ptSize>=7.5
+    str=strcat('\scriptsize~', text);
+else
+    str=strcat('\tiny ', text);
 end
 end
