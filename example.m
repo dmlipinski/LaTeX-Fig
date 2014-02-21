@@ -16,6 +16,11 @@ for i=1:7
 end
 
 figure(1)
+
+% Set the default interpreter to 'none' to avoid warnings from matlab's TeX
+% interpreter 
+set(1,'DefaultTextInterpreter','none');
+
 set(1,'position',[100 100 560 420])
 clf
 h = surf([x1 x2],[y1 y2],[z z],[z z]);
@@ -33,7 +38,8 @@ material shiny
 shading interp
 view(3)
 
-latex_fig( 1, 'outfile','-pdf','-png','-jpg','-eps','-tiff', ...
+% latex_fig( 1, 'outfile','-pdf','-png','-jpg','-tiff', ...
+latex_fig( 1, 'outfile','-jpg', ...
            '-nocrop',...
            '-transparent',...
            '-rasterize', h, ...
