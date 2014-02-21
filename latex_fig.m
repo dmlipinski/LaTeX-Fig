@@ -1,6 +1,6 @@
 function latex_fig(varargin)
 % latex_fig    Export a figure with text objects rendered via LaTeX
-%              ver 0.11
+%              ver 0.2
 %
 %    Examples:
 %      latex_fig(gcf,'output.pdf')
