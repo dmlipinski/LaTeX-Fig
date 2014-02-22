@@ -305,7 +305,7 @@ function latex_fig(varargin)
     end
     
     %remove the background from the eps if necessary:
-    if (options.transparent || options.rasterize) && ~strcmp(lower(get(options.handle,'color')),'none')
+    if options.transparent && ~strcmp(lower(get(options.handle,'color')),'none')
         eps_remove_background([EPS_FILE '.eps']);
     end
 
