@@ -8,7 +8,6 @@ Make sure the latex\_fig.m file is in your MATLAB path and type "help latex\_fig
 
 **Known issues:**
  - Rasterized plot objects are placed in front of all text and vector objects. This is especially an issue for 3D plots with the plot box on since the front edges of the plot box will appear behind any rasterized plot objects.
- - The '-transparent' option is automatically enabled for plots including rasterized objects, meaning that the figure background color is ignored.
  - There are many issues with multiple axes appearing on the same figure when the '-rasterize' option is used, especially if the axes overlap.
 
 **Improvements coming soon:**
