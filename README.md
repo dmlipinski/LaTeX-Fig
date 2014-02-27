@@ -9,6 +9,7 @@ Make sure the latex\_fig.m file is in your MATLAB path and type "help latex\_fig
 **Known issues:**
  - Rasterized plot objects are placed in front of all text and vector objects. This is especially an issue for 3D plots with the plot box on since the front edges of the plot box will appear behind any rasterized plot objects.
  - There are many issues with multiple axes appearing on the same figure when the '-rasterize' option is used, especially if the axes overlap.
+ - Relies on "print2array" function in the export_fig package. This function can also be very slow.
 
 **Improvements coming soon:**
  - Add Windows support.
