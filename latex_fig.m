@@ -98,9 +98,8 @@ function latex_fig(varargin)
     end
 
     %variables for temporary file names:
-    TMP_DIR = '/tmp/';
-    LATEX_FILE = sprintf('%stmp%08d',TMP_DIR,floor(1e8*rand));
-    EPS_FILE = sprintf('%stmp%08d',TMP_DIR,floor(1e8*rand));
+    LATEX_FILE = tempname();
+    EPS_FILE = tempname();
 
     %Parse inputs
     options = parse_inputs(varargin);
@@ -331,7 +330,7 @@ function latex_fig(varargin)
     end
     
     %process through latex to produce a dvi file
-    [s,r]=system(sprintf('cd %s; latex -interaction=nonstopmode %s.tex',TMP_DIR,LATEX_FILE));
+    [s,r]=system(sprintf('cd %s; latex -interaction=nonstopmode %s.tex',tempdir(),LATEX_FILE));
     if s
         error('Error processing latex file.\n\n%s',r);
     end
@@ -390,7 +389,7 @@ function latex_fig(varargin)
             fclose(FID);
 
             %compile
-            [s,r]=system(sprintf('pdflatex -interaction=nonstopmode -output-directory %s %s.tex && mv %s.pdf %s.pdf',TMP_DIR,LATEX_FILE,LATEX_FILE,options.filename));
+            [s,r]=system(sprintf('pdflatex -interaction=nonstopmode -output-directory %s %s.tex && mv %s.pdf %s.pdf',tempdir(),LATEX_FILE,LATEX_FILE,options.filename));
             if s
                 error('Error processing latex file.\n\n%s',r);
             end
