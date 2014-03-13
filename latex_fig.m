@@ -738,14 +738,14 @@ if transparent
     set(handle,'color','w','position',POS);
 end
 % drawnow
-tmpimg = print2array(handle,magnify,renderer);
+tmpimg = lat_print2array(handle,magnify,renderer);
 img = downscale( tmpimg, aa );
 
 if transparent
     %black background:
     set(handle,'color','k','position',POS);
 %     drawnow
-    tmpimg = print2array(handle,magnify,renderer);
+    tmpimg = lat_print2array(handle,magnify,renderer);
     img2 = downscale( tmpimg, aa );
 
     %reset background
