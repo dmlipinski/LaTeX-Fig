@@ -360,7 +360,8 @@ function latex_fig(varargin)
                 if strcmp(fmt,'jpg') && options.transparent
                     %add white background to jpgs since they can't handle
                     %transparency
-                    OPTS = '-background white -alpha remove';
+%                     OPTS = '-background white -alpha remove';
+                    OPTS = '-background white -flatten';
                 else
                     OPTS = '';
                 end
@@ -405,7 +406,8 @@ function latex_fig(varargin)
                 if strcmp(fmt,'jpg') && options.transparent
                     %add white background to jpgs since they can't handle
                     %transparency
-                    OPTS = '-background white -alpha remove';
+%                     OPTS = '-background white -alpha remove';
+                    OPTS = '-background white -flatten';
                 else
                     OPTS = '';
                 end
