@@ -512,9 +512,9 @@ function options = parse_inputs(inputs)
                 case {'-jpg','-jpeg'}
                     options.format.jpg=true;
                     i=i+1;
-                case {'-tif','-tiff'}
-                    options.format.tiff=true;
-                    i=i+1;
+%                 case {'-tif','-tiff'}
+%                     options.format.tiff=true;
+%                     i=i+1;
                 otherwise
                     % use regular expressions to check other options:
                     if ~isempty( regexpi(lower(inputs{i}),['^[\' filesep '\w][\' filesep '\w\.\-_]*$']))
@@ -578,9 +578,9 @@ function options = parse_inputs(inputs)
             case {'.jpg','.jpeg'}
                 options.format.jpg=true;
                 options.filename(I(end):end)=[];
-            case {'.tif','.tiff'}
-                options.format.tiff=true;
-                options.filename(I(end):end)=[];
+%             case {'.tif','.tiff'}
+%                 options.format.tiff=true;
+%                 options.filename(I(end):end)=[];
         end
     end
 
